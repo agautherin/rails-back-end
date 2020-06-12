@@ -9,10 +9,16 @@ class UsersController < ApplicationController
     end
 
     def create
-        
+        render json: User.create(user_params)
     end
 
     def update
 
+    end
+
+    private
+
+    def user_params
+        params.require(:user).permit(:first_name, :last_name, :username, :password)
     end
 end
