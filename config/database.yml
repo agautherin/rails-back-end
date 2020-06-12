@@ -23,7 +23,7 @@ default: &default
 
 development:
   <<: *default
-  database: IM_Encryption_development
+  database: mod-3-project
 
   # The specified database role being used to connect to postgres.
   # To create additional roles in postgres see `$ createuser --help`.
