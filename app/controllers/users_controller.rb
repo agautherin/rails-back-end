@@ -33,7 +33,7 @@ class UsersController < ApplicationController
         
         # 2) if I do have that user and the UN and PW check out, then grant token
         if (@user) 
-            token = JWT.encode(@user)
+            token = User.encode(@user)
             render json: {token: token}, status: :ok  # token.to_json()
         # elsif user doesnt exist "if @user == nil"
 
@@ -51,8 +51,7 @@ class UsersController < ApplicationController
         @user = User.find(id)
     end
 
-
     def user_params
-        params.require(:user).permit(:first_name, :last_name, :username, :password)
+        params.require(:user).permit(:first_name, :last_name, :username, :password_digest)
     end
 end
