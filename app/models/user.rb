@@ -1,4 +1,9 @@
 class User < ApplicationRecord
+    has_secure_password
+
+    validates :username, presence: true, uniqueness: true
+    validates :password, presence: true, length: {minimum: 6}
+
     has_many :messages
     has_many :groups
     
@@ -9,34 +14,10 @@ class User < ApplicationRecord
     
 
     def self.check_user(credentials)
-        @user = self.find_by(username: credentials[:username])
-        # byebug
-        if @user == nil 
-            return nil
-        end    
-        if @user[:password] == credentials[:password] 
-            return @user
-        else
-            return false
-        end
+        
+        @user = self.find_by(username: credentials[:username]).try(:authenticate, credentials[:password])
+           
         
     end
     
-    def grant_token
-
-        issued = Time.now.to_i
-        expiration_delay = Time.now.to_i + 2 * 3600 # expiration after 3600s (times) hours
-
-        payload = {
-            username: self[:username],
-            sub: "user_super_secret_id#{self[:id]}",
-            iat: issued,
-            exp: expiration_delay
-                    } 
-        # byebug
-        token = JWT.encode payload, $secretkey, 'HS256', { typ: 'JWT'}
-        return token
-
-        
-    end
 end
