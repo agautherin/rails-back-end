@@ -1,11 +1,13 @@
 class ChatroomsController < ApplicationController
+    before_action :authorize_request
 
     def index 
         render json: Chatroom.all
     end
 
     def create
-        chat_room = Chatroom.new(chat_room_params)
+        # byebug
+        chat_room = Chatroom.new(user_id: @current_user.id)
         if chat_room.save
             render json: chat_room
         else
@@ -21,8 +23,8 @@ class ChatroomsController < ApplicationController
 
     private
 
-    def chat_room_params
-        params.require(:chatroom).permit(:user_id)
+    def chat_room_params(*args)
+        params.require(:chatroom).permit(*args)
     end
 
 
