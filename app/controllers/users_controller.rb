@@ -12,7 +12,8 @@ class UsersController < ApplicationController
     end
 
     def create
-        @user = User.new(user_params)
+        # byebug
+        @user = User.new(user_params(:first_name, :last_name, :username, :password))
         if @user.save
             render json: @user, status: :created
         else
@@ -51,7 +52,7 @@ class UsersController < ApplicationController
         @user = User.find(id)
     end
 
-    def user_params
-        params.require(:user).permit(:first_name, :last_name, :username, :password_digest)
+    def user_params(*args)
+        params.require(:user).permit(*args)
     end
 end

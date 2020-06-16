@@ -52,6 +52,12 @@ Rails.application.configure do
 
   config.action_cable.allowed_request_origins = [
     # Local address we use for our standalone client
-    'file://'
-]
+    'file://', 'http://localhost:3000'
+  ]
+
+  config.web_socket_server_url = 'ws://localhost:3000/cable'
+
+  config.action_cable.url = 'http://localhost:3000/cable'
+
+
 end

@@ -1,24 +1,19 @@
 module ApplicationCable
   class Connection < ActionCable::Connection::Base
-    identified_by :current_user
-    
-    def connect
-      # identify caller, expects that a successful authentication sets an encrypted cookie with User ID
-      self.current_user = find_verified_user
-    end
+      # identified_by :current_user
 
-    private
-      def find_verified_user
-        # identify caller
-        
-        verified_user = authorize_request
-        
-        # what does varified_user REALLY return
-        if verified_user
-          return verified_user
-        else
-          reject_unauthorized_connection
-        end
-      end
+      # def connect
+      #   self.current_user = find_verified_user
+      # end
+
+      # protected
+      # def find_verified_user
+      #   if current_user = User.find_by(id: cookies.signed[:user_id])
+      #     current_user
+      #   else
+      #     reject_unauthorized_connection
+      #   end
+      # end
+   
   end
 end
