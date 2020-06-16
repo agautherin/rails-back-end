@@ -1,8 +1,12 @@
 class ChatChannel < ApplicationCable::Channel
     def subscribed
-        if params[:chatroom_id].present?
-            stream_from("Chatroom-#{params[:chatroom_id]}")
-        end
+        # if params[:chatroom_id].present?
+        #     stream_from("Chatroom-#{params[:chatroom_id]}")
+        # end
+
+        chat_room = Chatroom.find(params[:id])
+        stream_for chat_room
+
     end
 
     def chat(message_data)
