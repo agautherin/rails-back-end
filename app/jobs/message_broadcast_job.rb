@@ -9,10 +9,10 @@ class MessageBroadcastJob < ApplicationJob
       user_id: message.user,
       participants: message.chatroom.users.map(&:id)
     }
-    ActionCable.server.broadcast(build_room_id(message.conversation.id), payload) 
+    ActionCable.server.broadcast(build_room_id(message.chatroom.id), payload) 
   end
 
   def build_room_id(id)
-    "Chatroom-#{id}"
+    "#{id}"
   end
 end

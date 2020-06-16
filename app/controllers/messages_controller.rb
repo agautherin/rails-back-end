@@ -4,7 +4,7 @@ class MessagesController < ApplicationController
 
     def create
         # header for Authorization token .... decode... get username
-        
+        # byebug
         message = Message.new(message_text: params[:message][:message_text], chatroom_id: params[:message][:chatroom_id], user_id: @current_user.id, encryption_id: 1)
         if message.save
             chat_room = Chatroom.find(message.chatroom_id)

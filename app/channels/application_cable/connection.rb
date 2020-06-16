@@ -10,6 +10,7 @@ module ApplicationCable
     private
       def find_verified_user
         # identify caller
+        
         verified_user = authorize_request
         
         # what does varified_user REALLY return
