@@ -2,13 +2,15 @@ Rails.application.routes.draw do
 
   
   resources :chatrooms, only: [:index, :create, :show]
-  resources :encryptions
+  resources :encryptions, only: [:index, :create]
   resources :messages, only: [:create]
   resources :users, except: :destroy
   resources :groups
   
   post '/users/login', to: 'users#login'
   post '/users/check', to: 'users#check'
+
+  post 'encryptions/decrypt', to: 'encryptions#decrypt'
   
   
   mount ActionCable.server => '/cable'

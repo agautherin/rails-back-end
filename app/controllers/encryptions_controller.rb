@@ -20,5 +20,12 @@ class EncryptionsController < ApplicationController
         end
     end
 
+    def decrypt
+        
+        decrypted_message = Encryption.decrypt(params[:type], params[:message], params[:key])
+        render json: {user_id: @current_user, message: decrypted_message}
+        
+    end
+
 
 end

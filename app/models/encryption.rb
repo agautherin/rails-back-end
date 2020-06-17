@@ -39,10 +39,10 @@ class Encryption < ApplicationRecord
     end
 
     def self.decrypt(type, message, key)
-      if type === 1
+      if type === "1"
         # handle none
         return message
-      elsif type === 2
+      elsif type === "2"
         # handle caesar
         return self.caesar_decrypt(message, key)
 
