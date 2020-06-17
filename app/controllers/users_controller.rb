@@ -15,7 +15,9 @@ class UsersController < ApplicationController
         # byebug
         @user = User.new(user_params(:first_name, :last_name, :username, :password))
         if @user.save
-            render json: @user, status: :created
+            token = User.encode(@user)
+            render json: {token: token}, status: :created 
+            # render json: @user, status: :created
         else
             render json: { errors: @user.errors.full_messages },
                     status: :unprocessable_entity
@@ -45,6 +47,13 @@ class UsersController < ApplicationController
         # 3) send token to client in a json object
 
     end
+
+    def check
+        if @current_user
+            render json: @current_user.to_json()
+        end
+    end
+    
 
     private
 

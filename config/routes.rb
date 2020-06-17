@@ -8,6 +8,7 @@ Rails.application.routes.draw do
   resources :groups
   
   post '/users/login', to: 'users#login'
+  post '/users/check', to: 'users#check'
   
   
   mount ActionCable.server => '/cable'
