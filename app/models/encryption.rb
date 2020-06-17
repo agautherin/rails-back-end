@@ -1,6 +1,60 @@
 class Encryption < ApplicationRecord
     has_many :messages
 
+    def self.caesar_encrypt(message, key)
+      # message is going to be a plain text string, i.e., "Hello World"
+      # key is always going to be a string that is a number, i.e., "1"
+      encrypted_message = message.split("").map do |letter| 
+        (letter.ord - key.to_i).chr
+      end.join("")
+
+      return  encrypted_message
+      #return an encrypted string i.e., message jumbled "Jfmmp Xpsme"
+    end
+
+    def self.encrypt(type, message, key)
+      if type === "1"
+        # handle none
+        return message
+      elsif type === "2"
+        # handle caesar
+        return self.caesar_encrypt(message, key)
+
+      else
+        # handle enigma
+
+      end
+
+
+    end
+    
+    def self.caesar_decrypt(message, key)
+
+      encrypted_message = message.split("").map do |letter| 
+        (letter.ord + key.to_i).chr
+      end.join("")
+
+      return  encrypted_message
+      #return an encrypted string i.e., message jumbled
+    end
+
+    def self.decrypt(type, message, key)
+      if type === 1
+        # handle none
+        return message
+      elsif type === 2
+        # handle caesar
+        return self.caesar_decrypt(message, key)
+
+      else
+        # handle enigma
+
+      end
+
+
+    end
+    
+
     def self.rotor(rotor_model)
 
         # rotor model refers to the id of the rotor i.e. 1, 2, 3, 4, 5, or 6
