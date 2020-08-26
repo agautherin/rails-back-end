@@ -23,9 +23,13 @@ class EncryptionsController < ApplicationController
     def decrypt
         
         decrypted_message = Encryption.decrypt(params[:type], params[:message], params[:key])
-        render json: {user_id: @current_user, message: decrypted_message}
-        
+        if decrypted_message
+            render json: {user_id: @current_user, message: decrypted_message}
+        else 
+            render json: {error: true, message: "Error decrypting"}
+        end
     end
+
 
 
 end

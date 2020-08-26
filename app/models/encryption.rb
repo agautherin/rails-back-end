@@ -1,251 +1,253 @@
 class Encryption < ApplicationRecord
-    has_many :messages
+  has_many :messages
 
-
-
-    def self.enigma_encrypt(message, key)
-      rotor_pos_arr = self.parseKey(key) # arrary of rotor Positions [2, 1, 1]
-      
-      # Hello
-        message_array = message.upcase!.split('').map do |letter|
-        # 'H'
-            lc_key = self.useEntryWheel(letter, true)
-
-            lc1 = self.useRotor(lc_key, 1, rotor_pos_arr[2], 2, true) # letter
-            lc2 = self.useRotor(self.useEntryWheel(lc1, true), rotor_pos_arr[2], rotor_pos_arr[1], 1, true)
-            lc3 = self.useRotor(self.useEntryWheel(lc2, true), rotor_pos_arr[1], rotor_pos_arr[0], 0, true)
-           
-            r1 = self.useReflector(self.useEntryWheel(lc3, true), 1)
-
-            lc4 = self.useRotor(self.useEntryWheel(r1, true), 1, rotor_pos_arr[0], 0, false)
-            lc5 = self.useRotor(self.useEntryWheel(lc4, true), rotor_pos_arr[0], rotor_pos_arr[1], 1, false)
-            lc6 = self.useRotor(self.useEntryWheel(lc5, true), rotor_pos_arr[1], rotor_pos_arr[2], 2, false)
-
-
-            entry_wheel = self.entryWheel
-
-            new_letter = entry_wheel[lc6][1]
-
-            rotor_pos_arr[2] += 1
-            
-            return new_letter  
-        end
-
+  def self.enigma(message, key)
+    current_key = self.parseKey(key)
+      encrypted = message.split('').map do |letter| 
+        # convert letter to Alphabet position
+        l = letter.upcase
+        zero_position = (l.ord - 64)
+        # wrap logic in conditional regex
+        if zero_position > 0 && zero_position < 27
+        # use entry wheel
+        first_position = self.useEntryWheel(zero_position.to_s, true)
+        # rotor 3
+        second_position = self.useRotor(first_position, current_key[0], 0)
+        # rotor 2 
+        third_position = self.useRotor(second_position, current_key[1], 1)
+        # rotor 1
+        fourth_position = self.useRotor(third_position, current_key[2], 2)
         # reflector
-        message_array.join()
-      end
-
-
-    
-
-    def self.useEntryWheel(letter, isEntry)
-      wheel = self.entryWheel
-      if isEntry
-        wheel.each do |k, v|
-          if v[1] == letter
-            return k
-          end
-        end
+        fifth_position = self.useReflector(fourth_position)
+        # rotor 1
+        sixth_position = self.useReverseRotor(fifth_position, current_key[2], 2)
+        # rotor 2
+        seventh_position = self.useReverseRotor(sixth_position, current_key[1], 1)
+        # rotor 3
+        eighth_position = self.useReverseRotor(seventh_position, current_key[0], 0)
+        # use entry wheel
+        encrypted_letter = self.useEntryWheel(eighth_position, false)
+        # turn rotor
+        current_key = self.advanceRotors(current_key)
+        encrypted_letter
       else
-        if v[0] == letter
-            return k
-        end
+        letter
       end
     end
+    encrypted.join()
+  end
 
-    def self.find_first(letter, model)
-      
-      rotor_model = self.rotor(model)
-
-      rotor_model.each do |k, v|
-        if v[1] == letter
-          return k
-        end
-    
-      end
+  def self.useEntryWheel(position, isEntry)
+    wheel = self.entryWheel
+    return wheel[position.to_s][0] if !isEntry
+    return position
+  end
+   
+  def self.useRotor(input, rotorPosition, rotorNum)
+    # input is already adjusted
+    offset = input.to_i - 1;
+    # adjust by offset
+    entry_point = rotorPosition + offset;
+    # if over 26
+    entry_point = entry_point % 26 if entry_point > 26
+    # p "Rotor Adjustment: #{entry_point}"
+    rotor_model = self.rotor(rotorNum) # get specific rotor
+    letter_couple = rotor_model[entry_point.to_s]
+    # p "Letter Pair: #{letter_couple}"
+    letter_ord = (letter_couple[1].ord - 64)
+    # p letter_ord
+    if (letter_ord < rotorPosition) 
+        exit_point = (26 - rotorPosition + 1) + letter_ord
+    elsif (letter_ord > rotorPosition)
+        exit_point = letter_ord + (1 - rotorPosition)
+    else 
+        exit_point = 1
     end
-
-    def self.useRotor(lc, prevPos, currPos, rotorNum, isEntry)
-      # lc = "8", pos=2, 2, isENtry = true
-      
-      currPos = currPos.to_i
-      prevPos = prevPos.to_i
-      
-      if isEntry
-        
-        if currPos > prevPos
-          offset = currPos - prevPos # 1
-        elsif currPos < prevPos 
-          total_value = 26 - currPos + prevPos
-          offset = total_value % 26
-        else
-            offset = 0
-        end
-
-        rotor_model = self.rotor(rotorNum) # get specific rotor
-
-        entry_point = (lc.to_i + offset).to_s # 9
-          
-        letter_couple = rotor_model[entry_point]
-        
-        return letter_couple[1]
-        
-      else
-        if currPos > prevPos
-            offset = currPos - prevPos # 1
-        elsif currPos < prevPos 
-            total_value = 26 - currPos + prevPos
-            offset = total_value % 26
-        else
-            offset = 0
-        end
-        
-        rotor_model = self.rotor(rotorNum) # get specific rotor
-        
-        entry_point = (lc.to_i + offset).to_s # 9
-        
-        letter_couple = rotor_model[entry_point]
-        
-  
-        exit_point = (self.find_first(letter_couple[0], rotorNum).to_i) - offset
-        # puts exit_point
-         
-        return exit_point.to_s
-      end
+    # p "Exit Position: #{exit_point}"
+    return exit_point.to_s
 
   end
 
+  def self.useReverseRotor(input, rotorPosition, rotorNum)
+    # input is already adjusted
+    offset = input.to_i - 1;
+    # adjust by offset
+    entry_point = rotorPosition + offset;
+    # if over 26
+    entry_point = entry_point % 26 if entry_point > 26
+    entry_letter = (entry_point+64).chr
+ 
+    rotor_model = self.rotor(rotorNum) # get specific rotor
+    letter_couple = rotor_model[entry_point.to_s][0]
+    letter = letter_couple[0]
+   
+    couple = rotor_model.find do |k, v| 
+      v[1] == letter
+    end
+    letter_ord = couple[0].to_i
 
+    exit_point = 1
+    i = rotorPosition
+    while (i < letter_ord) do
+      if i < 26
+          i+=1
+      else 
+          i = 1
+      end
+      exit_point+=1
+    end
+     
+    if (letter_ord < rotorPosition) 
+      exit_point = (26 - rotorPosition + 1) + letter_ord
+    elsif (letter_ord > rotorPosition)
+      exit_point = letter_ord + (1 - rotorPosition)
+    else 
+      exit_point =  1
+    end
 
-  def self.useReflector(offset, pos)
+    return exit_point.to_s
+
+  end
+
+  def self.useReflector(input)
     reflector_model = self.reflector
-    reference = ((offset.to_i)-pos).to_s
-    
-    reflector_model[reference][1]
+    letter_return = reflector_model[input][1]
+    # p "Entry Letter: #{reflector_model[input][0]}, Exit Letter: #{letter_return}"
+    return (letter_return.ord - 64).to_s
   end
 
 
-    def self.parseKey(key)
-      key.split('rotor')
+  def self.advanceRotors(arr)
+    arr[0] += 1;
+    if (arr[0] > 26) 
+        arr[1] += 1
+        arr[0] = 1
+    end
+    if (arr[1] > 26)
+        arr[2] += 1
+        arr[1] = 1
+    end
+    if (arr[2] > 26)
+        arr[2] = 1
     end
 
+    return arr
+  end
 
-    def self.caesar_encrypt(message, key)
-      # message is going to be a plain text string, i.e., "Hello World"
-      # key is always going to be a string that is a number, i.e., "1"
-      encrypted_message = message.split("").map do |letter| 
-        (letter.ord - key.to_i).chr
-      end.join("")
+  def self.parseKey(key)
+    key.split('rotor').map do |num| num.to_i end
+  end
 
-      return  encrypted_message
-      #return an encrypted string i.e., message jumbled "Jfmmp Xpsme"
+  def self.caesar_encrypt(message, key)
+    # message is going to be a plain text string, i.e., "Hello World"
+    # key is always going to be a string that is a number, i.e., "1"
+    encrypted_message = message.split("").map do |letter| 
+      (letter.ord - key.to_i).chr
+    end.join("")
+
+    return  encrypted_message
+    #return an encrypted string i.e., message jumbled "Jfmmp Xpsme"
+  end
+
+  def self.encrypt(type, message, key)
+    if type === "1"
+      # handle none
+      return message
+    elsif type === "2"
+      # handle caesar
+      return self.caesar_encrypt(message, key)
+
+    else
+      # handle enigma
+      return self.enigma(message, key)
+
     end
-
-    def self.encrypt(type, message, key)
-      if type === "1"
-        # handle none
-        return message
-      elsif type === "2"
-        # handle caesar
-        return self.caesar_encrypt(message, key)
-
-      else
-
-
-        return self.enigma_encrypt(message, key)
-        # handle enigma
-
-      end
-
-
-    end
+  end
     
-    def self.caesar_decrypt(message, key)
+  def self.caesar_decrypt(message, key)
 
-      encrypted_message = message.split("").map do |letter| 
-        (letter.ord + key.to_i).chr
-      end.join("")
+    encrypted_message = message.split("").map do |letter| 
+      (letter.ord + key.to_i).chr
+    end.join("")
 
-      return  encrypted_message
-      #return an encrypted string i.e., message jumbled
+    return  encrypted_message
+    #return an encrypted string i.e., message jumbled
+  end
+
+  def self.decrypt(type, message, key)
+    if type === "1"
+      # handle none
+      return message
+    elsif type === "2"
+      # handle caesar
+      return self.caesar_decrypt(message, key)
+
+    else
+      # handle enigma
+      return self.enigma(message, key)
     end
-
-    def self.decrypt(type, message, key)
-      if type === "1"
-        # handle none
-        return message
-      elsif type === "2"
-        # handle caesar
-        return self.caesar_decrypt(message, key)
-
-      else
-        # handle enigma
-        return self.enigma_decrypt(message, key)
-      end
-
-
-    end
+  end
     
-    def self.entryWheel()
-      {
-        "1" => ["A", "A"],
-        "2" => ["B", "B"],
-        "3" => ["C", "C"],
-        "4" => ["D", "D"],
-        "5" => ["E", "E"],
-        "6" => ["F", "F"],
-        "7" => ["G", "G"],
-        "8" => ["H", "H"],
-        "9" => ["I", "I"],
-        "10" => ["J", "J"],
-        "11" => ["K", "K"],
-        "12" => ["L", "L"],
-        "13" => ["M", "M"],
-        "14" => ["N", "N"],
-        "15" => ["O", "O"],
-        "16" => ["P", "P"],
-        "17" => ["Q", "Q"],
-        "18" => ["R", "R"],
-        "19" => ["S", "S"],
-        "20" => ["T", "T"],
-        "21" => ["U", "U"],
-        "22" => ["V", "V"],
-        "23" =>["W", "W"],
-        "24" =>["X", "X"],
-        "25" => ["Y", "Y"],
-        "26" => ["Z", "Z"]
+  def self.entryWheel()
+    {
+      "1" => ["A", "A"],
+      "2" => ["B", "B"],
+      "3" => ["C", "C"],
+      "4" => ["D", "D"],
+      "5" => ["E", "E"],
+      "6" => ["F", "F"],
+      "7" => ["G", "G"],
+      "8" => ["H", "H"],
+      "9" => ["I", "I"],
+      "10" => ["J", "J"],
+      "11" => ["K", "K"],
+      "12" => ["L", "L"],
+      "13" => ["M", "M"],
+      "14" => ["N", "N"],
+      "15" => ["O", "O"],
+      "16" => ["P", "P"],
+      "17" => ["Q", "Q"],
+      "18" => ["R", "R"],
+      "19" => ["S", "S"],
+      "20" => ["T", "T"],
+      "21" => ["U", "U"],
+      "22" => ["V", "V"],
+      "23" =>["W", "W"],
+      "24" =>["X", "X"],
+      "25" => ["Y", "Y"],
+      "26" => ["Z", "Z"]
+  }
+  end
+
+  def self.reflector 
+    {
+      '1' => ['A', 'E'],
+      '2' => ['B', 'J'],
+      '3' => ['C', 'M'],
+      '4' => ['D', 'Z'],
+      '5' => ['E', 'A'],
+      '6' => ['F', 'L'],
+      '7' => ['G', 'Y'],
+      '8' => ['H', 'X'],
+      '9' => ['I', 'V'],
+      '10' => ['J', 'B'],
+      '11' => ['K', 'W'],
+      '12' => ['L', 'F'],
+      '13' => ['M', 'C'],
+      '14' => ['N', 'R'],
+      '15' => ['O', 'Q'],
+      '16' => ['P', 'U'],
+      '17' => ['Q', 'O'],
+      '18' => ['R', 'N'],
+      '19' => ['S', 'T'],
+      '20' => ['T', 'S'],
+      '21' => ['U', 'P'],
+      '22' => ['V', 'I'],
+      '23' => ['W', 'K'],
+      '24' => ['X', 'H'],
+      '25' => ['Y', 'G'],
+      '26' => ['Z', 'D']
     }
-    end
-
-    def self.reflector 
-      {
-          '1' => ['A', 'E'],
-          '2' => ['B', 'J'],
-          '3' => ['C', 'M'],
-          '4' => ['D', 'Z'],
-          '5' => ['E', 'A'],
-          '6' => ['F', 'L'],
-          '7' => ['G', 'Y'],
-          '8' => ['H', 'X'],
-          '9' => ['I', 'V'],
-          '10' => ['J', 'B'],
-          '11' => ['K', 'W'],
-          '12' => ['L', 'F'],
-          '13' => ['M', 'C'],
-          '14' => ['N', 'R'],
-          '15' => ['O', 'Q'],
-          '16' => ['P', 'U'],
-          '17' => ['Q', 'O'],
-          '18' => ['R', 'N'],
-          '19' => ['S', 'T'],
-          '20' => ['T', 'S'],
-          '21' => ['U', 'P'],
-          '22' => ['V', 'I'],
-          '23' => ['W', 'K'],
-          '24' => ['X', 'H'],
-          '25' => ['Y', 'G'],
-          '26' => ['Z', 'D']
-      }
   end
 
     def self.rotor(rotor_model)
@@ -254,6 +256,7 @@ class Encryption < ApplicationRecord
         # input a single character integer type and return a hash
 
         r_kit = [{
+            
             "1" => ["A", "E"],
             "2" => ["B", "K"],
             "3" => ["C", "M"],
@@ -427,25 +430,3 @@ class Encryption < ApplicationRecord
     end
 
 end
-
-
-
-# alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-# rotor = 'EJMZALYXVBWFCRQUONTSPIKHGD'
-
-# hash = {}
-# arr = []
-
-# i = 0
-# count = 0
-
-# alpha_arr = alphabet.split('')
-# rotor_arr = rotor.split('')
-
-# while i < alpha_arr.length do 
-#   arr << "'#{count += 1}': ['#{alpha_arr[i]}', '#{rotor_arr[i]}'],"
-
-#   i += 1
-# end
-
-# puts arr
